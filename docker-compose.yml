@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: salon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-salon_db}
+      POSTGRES_USER: ${DB_USERNAME:-salon_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-salon_secret}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-salon_user} -d ${DB_NAME:-salon_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - salon-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: salon-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-salon_db}
+      DB_USERNAME: ${DB_USERNAME:-salon_user}
+      DB_PASSWORD: ${DB_PASSWORD:-salon_secret}
+      JWT_SECRET: ${JWT_SECRET:-9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-7200000}
+      JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS:-604800000}
+      APP_ADMIN_NAME: ${APP_ADMIN_NAME:-Administrador do Salão}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-admin@salonmanager.com}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin@123456}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    networks:
+      - salon-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  salon-network:
+    driver: bridge
