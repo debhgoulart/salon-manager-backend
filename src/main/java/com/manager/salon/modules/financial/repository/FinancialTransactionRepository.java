@@ -46,6 +46,17 @@ public interface FinancialTransactionRepository extends JpaRepository<FinancialT
             @Param("endDate") LocalDate endDate
     );
 
+    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM FinancialTransaction f WHERE " +
+           "f.type = :type AND f.status = :status AND LOWER(f.category) = LOWER(:category) AND " +
+           "f.transactionDate >= :startDate AND f.transactionDate <= :endDate")
+    BigDecimal sumAmountByTypeAndCategoryAndStatus(
+            @Param("type") TransactionType type,
+            @Param("category") String category,
+            @Param("status") TransactionStatus status,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
     @Query("SELECT f FROM FinancialTransaction f WHERE " +
            "f.transactionDate >= :startDate AND f.transactionDate <= :endDate AND " +
            "f.status = 'COMPLETED' AND f.monthlyClosingId IS NULL")

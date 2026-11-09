@@ -2,6 +2,9 @@ package com.manager.salon.modules.appointment.repository;
 
 import com.manager.salon.modules.appointment.entity.Appointment;
 import com.manager.salon.modules.appointment.entity.AppointmentStatus;
+import com.manager.salon.modules.dashboard.dto.TopEmployeeResponse;
+import com.manager.salon.modules.dashboard.dto.TopServiceResponse;
+import com.manager.salon.modules.dashboard.dto.UpcomingAppointmentResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -56,4 +59,41 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     );
 
     List<Appointment> findByClientIdOrderByStartTimeDesc(UUID clientId);
+
+    long countByStartTimeBetween(OffsetDateTime start, OffsetDateTime end);
+    long countByStatusAndStartTimeBetween(AppointmentStatus status, OffsetDateTime start, OffsetDateTime end);
+
+    @Query("SELECT new com.manager.salon.modules.dashboard.dto.TopServiceResponse(" +
+           "a.service.id, a.service.name, COUNT(a), SUM(a.estimatedPrice)) " +
+           "FROM Appointment a " +
+           "WHERE a.status = 'CONCLUIDO' AND a.startTime >= :start AND a.startTime <= :end " +
+           "GROUP BY a.service.id, a.service.name " +
+           "ORDER BY COUNT(a) DESC")
+    List<TopServiceResponse> findTopServices(
+            @Param("start") OffsetDateTime start,
+            @Param("end") OffsetDateTime end,
+            Pageable pageable
+    );
+
+    @Query("SELECT new com.manager.salon.modules.dashboard.dto.TopEmployeeResponse(" +
+           "a.employee.id, a.employee.name, COUNT(a), SUM(a.estimatedPrice)) " +
+           "FROM Appointment a " +
+           "WHERE a.status = 'CONCLUIDO' AND a.startTime >= :start AND a.startTime <= :end " +
+           "GROUP BY a.employee.id, a.employee.name " +
+           "ORDER BY SUM(a.estimatedPrice) DESC")
+    List<TopEmployeeResponse> findTopEmployees(
+            @Param("start") OffsetDateTime start,
+            @Param("end") OffsetDateTime end,
+            Pageable pageable
+    );
+
+    @Query("SELECT new com.manager.salon.modules.dashboard.dto.UpcomingAppointmentResponse(" +
+           "a.id, a.client.name, a.employee.name, a.service.name, a.startTime, a.endTime, a.estimatedPrice, a.status) " +
+           "FROM Appointment a " +
+           "WHERE a.startTime >= :now AND a.status IN ('AGENDADO', 'CONFIRMADO') " +
+           "ORDER BY a.startTime ASC")
+    List<UpcomingAppointmentResponse> findUpcomingAppointments(
+            @Param("now") OffsetDateTime now,
+            Pageable pageable
+    );
 }
