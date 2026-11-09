@@ -12,8 +12,10 @@ import com.manager.salon.modules.appointment.repository.AppointmentRepository;
 import com.manager.salon.modules.appointment.service.AppointmentService;
 import com.manager.salon.modules.client.entity.Client;
 import com.manager.salon.modules.client.repository.ClientRepository;
+import com.manager.salon.modules.commission.service.CommissionCalculatorService;
 import com.manager.salon.modules.employee.entity.Employee;
 import com.manager.salon.modules.employee.repository.EmployeeRepository;
+import com.manager.salon.modules.financial.service.FinancialTransactionService;
 import com.manager.salon.modules.service.entity.ServiceEntity;
 import com.manager.salon.modules.service.repository.ServiceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +59,12 @@ class AppointmentServiceTest {
 
     @Mock
     private ServiceRepository serviceRepository;
+
+    @Mock
+    private FinancialTransactionService financialTransactionService;
+
+    @Mock
+    private CommissionCalculatorService commissionCalculatorService;
 
     @InjectMocks
     private AppointmentService appointmentService;

@@ -13,8 +13,10 @@ import com.manager.salon.modules.appointment.mapper.AppointmentMapper;
 import com.manager.salon.modules.appointment.repository.AppointmentRepository;
 import com.manager.salon.modules.client.entity.Client;
 import com.manager.salon.modules.client.repository.ClientRepository;
+import com.manager.salon.modules.commission.service.CommissionCalculatorService;
 import com.manager.salon.modules.employee.entity.Employee;
 import com.manager.salon.modules.employee.repository.EmployeeRepository;
+import com.manager.salon.modules.financial.service.FinancialTransactionService;
 import com.manager.salon.modules.service.entity.ServiceEntity;
 import com.manager.salon.modules.service.repository.ServiceRepository;
 import org.springframework.data.domain.Page;
@@ -38,19 +40,25 @@ public class AppointmentService {
     private final ClientRepository clientRepository;
     private final EmployeeRepository employeeRepository;
     private final ServiceRepository serviceRepository;
+    private final FinancialTransactionService financialTransactionService;
+    private final CommissionCalculatorService commissionCalculatorService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             AppointmentMapper appointmentMapper,
             ClientRepository clientRepository,
             EmployeeRepository employeeRepository,
-            ServiceRepository serviceRepository
+            ServiceRepository serviceRepository,
+            FinancialTransactionService financialTransactionService,
+            CommissionCalculatorService commissionCalculatorService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.appointmentMapper = appointmentMapper;
         this.clientRepository = clientRepository;
         this.employeeRepository = employeeRepository;
         this.serviceRepository = serviceRepository;
+        this.financialTransactionService = financialTransactionService;
+        this.commissionCalculatorService = commissionCalculatorService;
     }
 
     @Transactional
@@ -168,6 +176,16 @@ public class AppointmentService {
         }
 
         Appointment updated = appointmentRepository.save(appointment);
+
+        // Gatilhos Financeiros e de Comissões
+        if (newStatus == AppointmentStatus.CONCLUIDO) {
+            financialTransactionService.registerIncomeFromAppointment(updated);
+            commissionCalculatorService.calculateAndRecordCommission(updated);
+        } else if (newStatus == AppointmentStatus.CANCELADO || newStatus == AppointmentStatus.NAO_COMPARECEU) {
+            financialTransactionService.cancelTransactionByAppointment(updated.getId());
+            commissionCalculatorService.cancelCommissionByAppointment(updated.getId());
+        }
+
         return appointmentMapper.toResponse(updated);
     }
 
@@ -187,6 +205,8 @@ public class AppointmentService {
             appointment.setNotes(updatedNotes);
         }
         appointmentRepository.save(appointment);
+        financialTransactionService.cancelTransactionByAppointment(appointment.getId());
+        commissionCalculatorService.cancelCommissionByAppointment(appointment.getId());
     }
 
     private void validateScheduleConflict(UUID employeeId, OffsetDateTime startTime, OffsetDateTime endTime, UUID excludeId) {
