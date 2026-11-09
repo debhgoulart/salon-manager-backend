@@ -1,3 +1,49 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
 spring:
   application:
-    name: salon
+    name: salon-manager-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/salon_db}
+    username: ${DB_USER:salon_user}
+    password: ${DB_PASSWORD:salon_pass}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+# Custom App Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-hours: ${JWT_EXPIRATION_HOURS:2}
+    refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
+  admin:
+    name: ${ADMIN_NAME:Administrador do Salão}
+    email: ${ADMIN_EMAIL:admin@salonmanager.com}
+    password: ${ADMIN_PASSWORD:admin@123456}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
